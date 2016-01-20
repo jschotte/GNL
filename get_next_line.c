@@ -6,37 +6,35 @@
 /*   By: jschotte <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2015/12/28 09:30:10 by jschotte          #+#    #+#             */
-/*   Updated: 2016/01/06 13:23:54 by jschotte         ###   ########.fr       */
+/*   Updated: 2016/01/07 11:23:04 by jschotte         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
 
-static int	get_line(int const fd, char *buffer, char *save[fd])
+static int	make_line(int const fd, char *buffer, char *stock[fd])
 {
 	int		ret;
-	char	*c;
-	char	*tmp;
+	char	*temp;
 
-	while ((c = ft_strchr(save[fd], '\n')) == NULL &&
+	while ((ft_strchr(buffer, '\n') == NULL) &&
 			(ret = read(fd, buffer, BUFF_SIZE)) > 0)
 	{
 		buffer[ret] = '\0';
-		tmp = save[fd];
-		save[fd] = ft_strjoin(tmp, buffer);
-		ft_strdel(&tmp);
+		temp = stock[fd];
+		stock[fd] = ft_strjoin(temp, buffer);
+		ft_strdel(&temp);
 	}
-	ft_strdel(&buffer);
+	if (buffer)
+		ft_strdel(&buffer);
 	if (ret == -1)
 		return (-1);
-	if (!c && ret == 0)
-		return (0);
 	return (1);
 }
 
 int			get_next_line(int const fd, char **line)
 {
-	static char	*save[MAX_FD];
+	static char	*stock[FD];
 	char		*buffer;
 	int			ret;
 	char		*str;
@@ -45,29 +43,19 @@ int			get_next_line(int const fd, char **line)
 	buffer = ft_strnew(BUFF_SIZE);
 	if (fd < 0 || line == NULL || buffer == NULL || BUFF_SIZE < 1)
 		return (-1);
-	if (save[fd] == NULL)
-		save[fd] = ft_strnew(1);
-	ret = get_line(fd, buffer, save);
-	if (ret == -1)
+	if (stock[fd] == NULL)
+		stock[fd] = ft_strnew(1);
+	if ((ret = make_line(fd, buffer, stock)) == -1)
 		return (-1);
-	if ((str = ft_strchr(save[fd], '\n')) != NULL)
+	if ((str = ft_strchr(stock[fd], '\n')) != NULL)
 	{
-		*line = ft_strsub(save[fd], 0, str - save[fd]);
-		tmp = save[fd];
-		save[fd] = ft_strdup(str + 1);
+		*line = ft_strsub(stock[fd], 0, str - stock[fd]);
+		tmp = stock[fd];
+		stock[fd] = ft_strdup(str + 1);
 		ft_strdel(&tmp);
 		return (1);
 	}
-	while ((ret = read(fd, buffer, BUFF_SIZE)) > 0)
-	{
-		buffer[ret] = '\0';
-		tmp = save[fd];
-		save[fd] = ft_strjoin(tmp, buffer);
-		ft_strdel(&tmp);
-	}
-	*line = ft_strdup(save[fd]);
-	save[fd] = NULL;
-	if (ft_strlen(*line) > 0)
-		return (1);
-	return (0);
+	*line = ft_strdup(stock[fd]);
+	stock[fd] = NULL;
+	return (ft_strlen(*line) > 0 ? 1 : 0);
 }
